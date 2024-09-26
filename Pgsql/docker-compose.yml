@@ -1,0 +1,11 @@
+services:
+  postgres:
+    image: postgres:16-bullseye
+    container_name: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - 5490:5432
+    restart: unless-stopped
