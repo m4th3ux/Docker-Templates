@@ -39,6 +39,17 @@ services:
       - host.docker.internal:host-gateway
     restart: unless-stopped
   
+  qdrant:
+    image: qdrant/qdrant
+    container_name: qdrant
+    ports:
+      - "6333:6333"    # Porta HTTP
+      - "6334:6334"    # Porta gRPC (opcional)
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: always
+
 volumes:
   ollama: {}
   open-webui: {}
+  qdrant_data: {}
