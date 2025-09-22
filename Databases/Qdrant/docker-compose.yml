@@ -1,0 +1,27 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.9.0 # É uma boa prática fixar a versão
+    container_name: qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333" # Porta gRPC
+      - "6334:6334" # Porta REST API e Web UI
+    volumes:
+      - qdrant_data:/qdrant/storage # Volume nomeado para persistir os dados
+    healthcheck:
+      # Testa o endpoint '/readyz' para verificar se o serviço está pronto para receber tráfego.
+      test: ["CMD", "curl", "-f", "http://localhost:6333/readyz"]
+      interval: 20s          # Verifica a cada 20 segundos
+      timeout: 5s            # Espera no máximo 5 segundos pela resposta
+      retries: 3             # Tenta 3 vezes antes de marcar como "unhealthy"
+      start_period: 60s      # Dá 60 segundos para o contêiner iniciar antes da primeira verificação
+    # environment:
+    #   - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
+
+volumes:
+  qdrant_data:
+
+networks:
+  qdrant:
+    external:
+      true

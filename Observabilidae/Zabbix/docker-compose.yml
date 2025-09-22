@@ -1,0 +1,93 @@
+services:
+  # Serviço do Banco de Dados PostgreSQL
+  postgres-server:
+    image: postgres:16-alpine
+    container_name: postgres-server-zabbix
+    restart: unless-stopped
+    volumes:
+      - zabbix_db_data:/var/lib/postgresql/data
+    environment:
+      # ATENÇÃO: Altere estas senhas para valores seguros em produção!
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix_password
+      - POSTGRES_DB=zabbix
+    # Remove a necessidade de expor a porta do banco de dados para o host,
+    # pois os outros containers se comunicam pela rede interna do Docker.
+    networks:
+      - zabbix-net
+
+  # Serviço do Zabbix Server (Backend)
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:7.0-alpine-latest
+    container_name: zabbix-server
+    restart: unless-stopped
+    depends_on:
+      - postgres-server
+    environment:
+      # Configurações de conexão com o banco de dados PostgreSQL
+      - DB_SERVER_HOST=postgres-server
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix_password
+      - POSTGRES_DB=zabbix
+    volumes:
+      # Volume para manter dados de cache do Zabbix Server
+      - zabbix_server_data:/var/lib/zabbix
+    ports:
+      # Porta padrão para o Zabbix Server receber dados dos agentes
+      - "10051:10051"
+    networks:
+      - zabbix-net
+
+  # Serviço da Interface Web do Zabbix
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:7.0-alpine-latest
+    container_name: zabbix-web
+    restart: unless-stopped
+    depends_on:
+      - zabbix-server
+      - postgres-server
+    environment:
+      # Configurações de conexão com o Zabbix Server
+      - ZBX_SERVER_HOST=zabbix-server
+      # Configurações de conexão com o banco de dados (usado pelo setup inicial)
+      - DB_SERVER_HOST=postgres-server
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix_password
+      - POSTGRES_DB=zabbix
+      # Fuso horário para a interface web (ajuste para o seu local)
+      - PHP_TZ=America/Sao_Paulo
+    ports:
+      # Porta para acessar a interface web. Ex: http://localhost:8080
+      - "8080:8080"
+      - "8443:8443" # Porta para HTTPS, se configurado
+    networks:
+      - zabbix-net
+
+  # Serviço do Agente Zabbix (para monitorar o próprio host)
+  zabbix-agent:
+    image: zabbix/zabbix-agent:7.0-alpine-latest
+    container_name: zabbix-agent
+    restart: unless-stopped
+    privileged: true # Necessário para algumas métricas do host
+    environment:
+      # Aponta o agente para o Zabbix Server
+      - ZBX_SERVER_HOST=zabbix-server
+      # Nome do host que aparecerá na interface do Zabbix
+      - ZBX_HOSTNAME=Docker Host
+    pid: "host"
+    volumes:
+      - /:/host/rootfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - zabbix-net
+
+# Definição das Redes e Volumes
+networks:
+  zabbix-net:
+    driver: bridge
+
+volumes:
+  zabbix_db_data:
+    driver: local
+  zabbix_server_data:
+    driver: local

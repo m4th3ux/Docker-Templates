@@ -1,0 +1,20 @@
+services:
+  chromadb:
+    image: chromadb/chroma:0.4.24 # É uma boa prática fixar a versão
+    container_name: chromadb
+    restart: unless-stopped
+    ports:
+      - "8000:8000" # Porta da API do ChromaDB
+    volumes:
+      - chroma_data:/chroma/.chroma/ # Volume nomeado para persistir os dados
+    environment:
+      - IS_PERSISTENT=TRUE  
+    # - ALLOW_RESET=TRUE   # Descomente em DEV se precisar resetar o banco via API
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  chroma_data:
