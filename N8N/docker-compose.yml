@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgres:14
+    container_name: n8n_postgres
+    restart: always
+    networks:
+      - n8n-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+  redis:
+    image: redis:7-alpine
+    container_name: n8n_redis
+    restart: always
+    networks:
+      - n8n-network
+    volumes:
+      - redis_data:/data
+
+  n8n:
+    image: n8nio/n8n
+    container_name: n8n_main
+    restart: always
+    ports:
+      - "443:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./certs:/certs
+    networks:
+      - n8n-network
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      EXECUTIONS_MODE: queue
+      QUEUE_BULL_REDIS_HOST: ${REDIS_HOST}
+      QUEUE_BULL_REDIS_PORT: ${REDIS_PORT}
+      N8N_PROTOCOL: https
+      N8N_SSL_KEY: /certs/selfsigned.key
+      N8N_SSL_CERT: /certs/selfsigned.crt
+      WEBHOOK_URL: ${WEBHOOK_URL}
+
+  n8n-worker:
+    image: n8nio/n8n
+    container_name: n8n_worker
+    restart: always
+    # Esta é a forma correta e robusta, que agora vai funcionar
+    entrypoint: ["n8n", "worker"]
+    networks:
+      - n8n-network
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - n8n
+      - redis
+    environment:
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      EXECUTIONS_MODE: queue
+      QUEUE_BULL_REDIS_HOST: ${REDIS_HOST}
+      QUEUE_BULL_REDIS_PORT: ${REDIS_PORT}
+
+volumes:
+  postgres_data:
+  redis_data:
+  n8n_data:
+
+networks:
+  n8n-network:
+    name: n8n-network

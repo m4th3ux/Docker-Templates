@@ -8,6 +8,13 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - determinacao_data:/var/lib/mysql
+      - ./backup:/backup
     ports:
-      - 3390:3306
+      - 3306:3306
     restart: unless-stopped
+
+volumes:
+  determinacao_data:
+    external: true
