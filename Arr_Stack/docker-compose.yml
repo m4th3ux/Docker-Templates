@@ -27,7 +27,7 @@ services:
       - TZ=Etc/UTC
       - JELLYFIN_PublishedServerUrl=http://IP #optional
     volumes:
-      - ./jelly/config:/config
+      - jelly_data:/config
       - ${DownloadsPath}:/data/movies
     ports:
       - 8096:8096
@@ -35,3 +35,8 @@ services:
       #- 7359:7359/udp #optional
       #- 1900:1900/udp #optional
     restart: unless-stopped
+
+volumes:
+  jelly_data:
+    driver: local
+    external: true
