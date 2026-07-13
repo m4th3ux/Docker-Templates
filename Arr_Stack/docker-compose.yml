@@ -38,5 +38,4 @@ services:
 
 volumes:
   jelly_data:
-    driver: local
     external: true
