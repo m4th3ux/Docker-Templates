@@ -11,7 +11,7 @@ services:
       - ./portainer-data:/data
     ports:
       - "8000:8000"
-      - "9443:9443"
+      - "9442:9443"
 
 networks:
   default:

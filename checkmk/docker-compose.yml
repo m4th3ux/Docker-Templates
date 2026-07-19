@@ -1,0 +1,16 @@
+services:
+    monitoring:
+        image: checkmk/check-mk-community:2.5.0p9
+        container_name: monitoring
+        ports:
+            - 8090:5000
+            - 8000:8000
+        volumes:
+            - monitoring:/omd/sites
+            - /etc/localtime:/etc/localtime:ro
+        restart: always
+        stdin_open: true
+        tty: true
+volumes:
+    monitoring:
+        external: true

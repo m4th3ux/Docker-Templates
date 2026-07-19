@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  # ==========================================
+  # 1. LITELLM (Proxy e Controle de Custos)
+  # ==========================================
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - DATABASE_URL=${LITELLM_DB_URL}
+      - STORE_MODEL_IN_DB=True
+      # Integração com o Langfuse
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
+      - LANGFUSE_HOST=http://langfuse:3000
+    command:
+      - "--config"
+      - "/app/config.yaml"
+      - "--port"
+      - "4000"
+    depends_on:
+      db-litellm:
+        condition: service_healthy
+
+  db-litellm:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=litellm
+      - POSTGRES_PASSWORD=litellm_pass
+      - POSTGRES_DB=litellm
+    volumes:
+      - litellm_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm -d litellm"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # 2. LANGFUSE (Observabilidade e Logs)
+  # ==========================================
+  langfuse:
+    image: langfuse/langfuse:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      db-langfuse:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=${LANGFUSE_DB_URL}
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - SALT=${SALT}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - TELEMETRY_ENABLED=false
+
+  db-langfuse:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=langfuse
+      - POSTGRES_PASSWORD=langfuse_pass
+      - POSTGRES_DB=langfuse
+    volumes:
+      - langfuse_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  litellm_data:
+  langfuse_data:
