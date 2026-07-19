@@ -6,11 +6,11 @@ services:
             - 8090:5000
             - 8000:8000
         volumes:
-            - monitoring:/omd/sites
+            - checkmk:/omd/sites
             - /etc/localtime:/etc/localtime:ro
         restart: always
         stdin_open: true
         tty: true
 volumes:
-    monitoring:
+    checkmk:
         external: true
