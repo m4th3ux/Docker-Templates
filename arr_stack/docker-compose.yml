@@ -24,11 +24,15 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Etc/UTC
+      - TZ=America_Sao_Paulo
       - JELLYFIN_PublishedServerUrl=http://IP #optional
     volumes:
       - jelly_data:/config
       - ${DownloadsPath}:/data/movies
+    devices:
+        - /dev/dri:/dev/dri # Libera IGPU para o container
+    tmpfs:
+        - /trasncode:size=2G
     ports:
       - 8096:8096
       #- 8920:8920 #optional
