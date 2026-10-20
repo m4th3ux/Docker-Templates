@@ -1,0 +1,54 @@
+# ============================================================
+# MCP do WordPress — servidor MCP para um site WordPress
+# ------------------------------------------------------------
+# Arquitetura:
+#   cliente MCP -> Caddy (Basic auth) -> mcp-proxy -> mcp-wp
+#
+# O container do MCP NÃO publica porta no host: quem expõe é o
+# Caddy, que faz a autenticação. As flags --username/--password do
+# mcp-proxy são credenciais de CLIENTE (upstream), não protegem o
+# servidor exposto.
+#
+# Setup:
+#   1. cp .env.example .env  e edite os valores
+#   2. docker compose up -d --build
+#   3. Acesso: http://IP_DO_HOST:8081/mcp (Basic auth)
+# ------------------------------------------------------------
+services:
+  wp-mcp:
+    build: .
+    container_name: mcp-wp-proxy
+    restart: unless-stopped
+    environment:
+      WORDPRESS_API_URL: "${WORDPRESS_API_URL:?defina WORDPRESS_API_URL no .env}"
+      WORDPRESS_USERNAME: "${WORDPRESS_USERNAME:?defina WORDPRESS_USERNAME no .env}"
+      WORDPRESS_PASSWORD: "${WORDPRESS_PASSWORD:?defina WORDPRESS_PASSWORD no .env}"
+    command:
+      - --transport
+      - streamablehttp
+      - --pass-environment
+      - --port
+      - "8081"
+      - --host
+      - 0.0.0.0
+      - --
+      - mcp-wp
+    expose:
+      - "8081"
+
+  wp-auth:
+    image: caddy:2-alpine
+    container_name: mcp-wp-auth
+    restart: unless-stopped
+    depends_on:
+      - wp-mcp
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "${MCP_WORDPRESS_PORT:-8081}:8081"
+
+volumes:
+  caddy_data:
+  caddy_config:

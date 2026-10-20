@@ -1,0 +1,14 @@
+{
+  auto_https off
+  admin off
+}
+
+:8081 {
+  basic_auth {
+    # Substitua __BCRYPT_HASH__ pelo hash gerado com:
+    #   docker run --rm caddy:2-alpine caddy hash-password --plaintext 'SUA_SENHA'
+    wp __BCRYPT_HASH__
+  }
+
+  reverse_proxy wp-mcp:8081
+}

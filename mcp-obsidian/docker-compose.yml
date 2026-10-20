@@ -1,0 +1,62 @@
+# ============================================================
+# MCP do Obsidian — servidor MCP para um vault local
+# ------------------------------------------------------------
+# Arquitetura:
+#   cliente MCP -> Caddy (Basic auth) -> mcp-proxy -> obsidian-mcp
+#                                                   -> /vault
+#
+# O container do MCP NÃO publica porta no host: quem expõe é o
+# Caddy, que faz a autenticação. Isso é necessário porque as flags
+# --username/--password do mcp-proxy são credenciais de CLIENTE
+# (upstream), não protegem o servidor exposto.
+#
+# Setup:
+#   1. cp .env.example .env  e edite os valores
+#   2. docker compose up -d --build
+#   3. Acesso: http://IP_DO_HOST:8083/mcp (Basic auth)
+# ------------------------------------------------------------
+services:
+  obsidian-mcp:
+    build: ./obsidian
+    container_name: mcp-obsidian-proxy
+    restart: unless-stopped
+    # Mesmo UID/GID do dono do vault, para os arquivos não saírem
+    # como root.
+    user: "${PUID:-1000}:${PGID:-1000}"
+    environment:
+      HOME: /tmp
+    volumes:
+      # O vault precisa conter a pasta .obsidian/
+      - "${OBSIDIAN_VAULT_PATH:?defina OBSIDIAN_VAULT_PATH no .env}:/vault"
+    command:
+      - --transport
+      - streamablehttp
+      - --pass-environment
+      - --port
+      - "8083"
+      - --host
+      - 0.0.0.0
+      - --
+      - obsidian-mcp
+      - serve
+      - --vault
+      - "${OBSIDIAN_VAULT_ID:-notes}=/vault"
+    expose:
+      - "8083"
+
+  obsidian-auth:
+    image: caddy:2-alpine
+    container_name: mcp-obsidian-auth
+    restart: unless-stopped
+    depends_on:
+      - obsidian-mcp
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "${MCP_OBSIDIAN_PORT:-8083}:8083"
+
+volumes:
+  caddy_data:
+  caddy_config:
