@@ -57,4 +57,8 @@ services:
   #   command: ["dashboard", "--host", "127.0.0.1", "--no-open"]
 
 volumes:
+  # Volume EXTERNO: criado fora do compose (no host ou via Portainer) e
+  # gerenciado por você — o compose não o recria nem o apaga no `down -v`.
+  # Antes do primeiro `up`, crie com:  docker volume create hermes_data
   hermes_data:
+    external: true
