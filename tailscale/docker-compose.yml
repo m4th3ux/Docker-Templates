@@ -1,0 +1,51 @@
+# ============================================================
+# Tailscale em container — subnet router / exit node
+# ------------------------------------------------------------
+# ATENÇÃO: para os papéis de exit node e subnet router,
+# PREFIRA instalar o Tailscale direto no host (guia no
+# README.md). Este compose é uma alternativa para máquinas
+# gerenciadas só via Docker.
+# ------------------------------------------------------------
+# Antes de subir:
+#   1. docker volume create tailscale-state
+#   2. Gere uma auth key (reutilizável) em:
+#      https://login.tailscale.com/admin/settings/keys
+#   3. Crie um .env ao lado com:  TS_AUTHKEY=tskey-auth-...
+#   4. Ajuste TS_EXTRA_ARGS com a sub-rede da sua LAN.
+# ------------------------------------------------------------
+services:
+  tailscale:
+    image: tailscale/tailscale:stable
+    container_name: tailscale
+    hostname: tailscale-node        # nome que aparece na tailnet
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      # Chave de autenticação (obrigatória; veja o topo).
+      TS_AUTHKEY: ${TS_AUTHKEY:?defina TS_AUTHKEY no .env}
+      # Estado persistido (identidade do nó + expiração de chave).
+      TS_STATE_DIR: /var/lib/tailscale
+      # Roteia a LAN do lab e anuncia exit node.
+      # Ajuste para a sua sub-rede (ip route). Para só exit node,
+      # remova --advertise-routes.
+      TS_EXTRA_ARGS: --advertise-routes=192.168.1.0/24 --advertise-exit-node
+    volumes:
+      # Volume persistido EXTERNO ao compose (docker volume create
+      # tailscale-state). Guarda a identidade do nó — não remova
+      # sem dar tailscale logout antes.
+      - tailscale-state:/var/lib/tailscale
+      # Dispositivo TUN do host (usuário-space desativado).
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      # Forwarding necessário para rotear sub-redes/exit node.
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+    # Subnet router precisa enxergar a rede do host.
+    network_mode: host
+
+volumes:
+  # Criado fora deste arquivo e gerenciado à parte do stack.
+  tailscale-state:
+    external: true
