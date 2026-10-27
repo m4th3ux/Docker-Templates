@@ -96,6 +96,15 @@ Plano gratuito: 3 usuários / 100 dispositivos — suficiente para uso pessoal.
 
 ## 4. Segurança
 
+- **SSH em porta não padrão** (hardening): edite `/etc/ssh/sshd_config`,
+  mude `#Port 22` para a porta desejada (ex.: `4587`), valide com `sshd -t`
+  e reinicie com `systemctl restart sshd` (sessões ativas sobrevivem).
+  **Em AlmaLinux/RHEL com SELinux**, registre a porta antes (ou o sshd não
+  escuta quando enforcing):
+  `dnf install -y policycoreutils-python-utils` e
+  `semanage port -a -t ssh_port_t -p tcp 4587`.
+  Por fim, espelhe no Cloud Firewall da Hetzner: remova a regra 22/TCP e
+  mantenha só a porta nova.
 - **MagicDNS ligado** (admin console → DNS) para usar nomes em vez de IPs.
 - **Key expiry**: desative apenas nos nós fixos (Hetzner e lab-router); no
   tablet deixe o padrão (o app re-autentica sozinho).
