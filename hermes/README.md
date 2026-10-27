@@ -23,12 +23,17 @@
    #   - DISCORD_BOT_TOKEN + DISCORD_ALLOWED_USERS
    ```
 
-2. **Suba o container**
+2. **Crie o volume externo e suba o container**
 
    ```bash
+   docker volume create hermes_data   # volume externo (ver docker-compose.yml)
    docker compose up -d
-   docker compose logs -f hermes   # acompanhe o primeiro boot
+   docker compose logs -f hermes      # acompanhe o primeiro boot
    ```
+
+   > O volume é declarado como `external: true` — ele **não** é removido pelo
+   > `docker compose down -v` nem recriado pelo compose. Para resetar os dados:
+   > `docker compose down && docker volume rm hermes_data`.
 
 3. **Configure o modelo de LLM** (uma única vez)
 
