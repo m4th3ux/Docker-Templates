@@ -23,10 +23,10 @@ Plano gratuito: 3 usuários / 100 dispositivos — suficiente para uso pessoal.
 
 1. No Cloud Console da Hetzner, crie o servidor:
    - **CX22** (x86) ou **CPX11** (ARM) — ambos sobram para esse papel;
-   - Ubuntu 24.04, sua chave SSH;
+   - Ubuntu 24.04 **ou AlmaLinux 9** (ambos suportados; guia cobre os dois), sua chave SSH;
    - Firewall na nuvem: libere apenas SSH (22/TCP) e Tailscale (41641/UDP).
      Sem IP flutuante, sem IPv4 extra.
-2. Instale o Tailscale:
+2. Instale o Tailscale (funciona em Ubuntu/Debian e em AlmaLinux/RHEL):
 
    ```bash
    curl -fsSL https://tailscale.com/install.sh | sh
@@ -41,10 +41,23 @@ Plano gratuito: 3 usuários / 100 dispositivos — suficiente para uso pessoal.
    sudo sysctl --system
    ```
 
+3a. **Só para AlmaLinux/RHEL** — o `firewalld` bloqueia o tráfego
+    encaminhado mesmo com forwarding ligado:
+
+   ```bash
+   firewall-cmd --permanent --add-masquerade
+   firewall-cmd --permanent --add-port=41641/udp
+   firewall-cmd --permanent --zone=trusted --add-interface=tailscale0
+   firewall-cmd --reload
+   ```
+
+   SELinux pode ficar enforcing — o pacote oficial já vem com política.
+
 4. No admin console (https://login.tailscale.com → **Machines**):
    - clique no nó Hetzner → **Edit route settings** → aprovar a rota de saída;
    - **⋯ → Disable key expiry** (nó fixo: evita bloqueio após 180 dias).
-5. Opcional: reforce o firewall local do SO com `ufw` (22 + 41641/udp apenas).
+5. Opcional: reforce o firewall local do SO (`ufw` no Ubuntu; `firewalld`
+   já tratado acima no AlmaLinux) com 22 + 41641/udp apenas.
 
 ## 2. Subnet router no laboratório
 
@@ -66,6 +79,8 @@ Plano gratuito: 3 usuários / 100 dispositivos — suficiente para uso pessoal.
 
 > Alternativa em container: use o `docker-compose.yml` deste template, mas
 > **prefira instalação no host** para os papéis de exit node e subnet router.
+> Em AlmaLinux/RHEL, reaplique o bloco `firewall-cmd` do passo 3a após o
+> primeiro `tailscale up`.
 
 ## 3. Tablet Android
 
