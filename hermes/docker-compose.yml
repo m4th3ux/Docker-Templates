@@ -38,6 +38,28 @@ services:
       - hermes_data:/opt/data
     command: ["gateway", "run"]
 
+    # ---- OPCIONAL: segredos via Infisical + backend SSH no host -------------
+    # Descomente para: buscar senhas do Infisical no boot do container
+    # (script cont-init do s6-overlay) e usar o HOST como terminal do agente.
+    #   1. cp fetch-secrets.sh.example fetch-secrets.sh   # ajuste o mapa
+    #   2. gere uma chave SSH e adicione a pub em ~/.ssh/authorized_keys do host
+    #   3. exporte a CA do seu Infisical (infisical-ca.crt) para esta pasta
+    #   4. preencha INFISICAL_* no .env
+    # environment:
+    #   - INFISICAL_DOMAIN=${INFISICAL_DOMAIN:-https://seu-infisical}
+    #   - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID}
+    #   - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET}
+    #   - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID}
+    #   - INFISICAL_ENVIRONMENT=${INFISICAL_ENVIRONMENT:-dev}
+    #   - INFISICAL_CA_FILE=/opt/hermes/ca/infisical-ca.crt
+    # volumes:
+    #   - ./fetch-secrets.sh:/etc/cont-init.d/05-fetch-secrets.sh:ro,Z
+    #   - ./infisical-ca.crt:/opt/hermes/ca/infisical-ca.crt:ro,Z
+    # No .env (host): TERMINAL_ENV=ssh, TERMINAL_SSH_KEY=~/.ssh/id_ed25519
+    # MCPs com auth vinda do Infisical (via ${VAR} resolvido em runtime):
+    #   docker exec --user 1000:1000 hermes hermes config set mcp_servers \
+    #     '{"obsidian":{"url":"${OBSIDIAN_MCP_URL}","headers":{"Authorization":"${OBSIDIAN_MCP_AUTH_HEADER}"}}}'
+
   # ---- Dashboard web (OPCIONAL — descomente para usar) ----------------------
   # Armazena chaves de API: por padrão só escuta em 127.0.0.1.
   # Acesse via túnel SSH (ssh -L 9119:localhost:9119 user@homelab).

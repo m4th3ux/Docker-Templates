@@ -69,6 +69,34 @@
    https://discord.com/oauth2/authorize?client_id=YOUR_APP_ID&scope=bot+applications.commands&permissions=309240908864&integration_type=0
    ```
 
+## Backend SSH no host + MCPs + senhas via Infisical (opcional)
+
+Para o agente operar **no host do homelab** (não dentro do container), conectar **MCPs do lab** (Obsidian/WordPress etc.) e buscar as **senhas do Infisical** no boot:
+
+1. **Chave SSH do agente** (no host):
+   ```bash
+   ssh-keygen -t ed25519 -f id_ed25519 -N ""
+   cat id_ed25519.pub >> ~/.ssh/authorized_keys
+   # copie id_ed25519 para dentro do volume (pasta .ssh do hermes_data, chmod 600)
+   ```
+2. **Identidade Infisical** (Universal Auth) com acesso ao projeto de segredos → preencha `INFISICAL_*` no `.env`.
+3. **Script de fetch**: `cp fetch-secrets.sh.example fetch-secrets.sh` e ajuste o mapa `SECRETS`/`BASIC_AUTH_HEADERS` com os nomes e caminhos do seu Infisical. Ele roda no boot (cont-init do s6-overlay) e grava os valores em `/opt/data/.env` — **nada de senha em arquivo**.
+4. **Compose**: descomente o bloco opcional (mounts do cont-init + CA + env do Infisical).
+5. **Backend**: no `.env`, `TERMINAL_ENV=ssh` + `TERMINAL_SSH_KEY=~/.ssh/id_ed25519`; host/porta/usuário e o `SUDO_PASSWORD` vêm do Infisical.
+6. **MCPs com auth do Infisical** (o `${VAR}` é resolvido em runtime):
+   ```bash
+   docker exec --user 1000:1000 hermes hermes config set mcp_servers \
+     '{"obsidian":{"url":"${OBSIDIAN_MCP_URL}","headers":{"Authorization":"${OBSIDIAN_MCP_AUTH_HEADER}"}}}'
+   ```
+7. Reinicie e teste:
+   ```bash
+   docker compose up -d --force-recreate
+   docker exec --user 1000:1000 hermes hermes mcp test obsidian
+   docker exec --user 1000:1000 hermes hermes chat --oneshot -q "Execute no terminal: hostname"
+   ```
+
+> **Nota:** no s6-overlay v3 o cont-init roda com ambiente limpo — o script já restaura o env a partir de `/run/s6/container_environment`. Use `docker exec --user 1000:1000` para não criar arquivos como root no volume.
+
 ## Dashboard web (opcional)
 
 O serviço `dashboard` está comentado no `docker-compose.yml` e, por padrão, escuta só em `127.0.0.1` (ele guarda chaves de API — **não exponha na LAN sem autenticação**). Para acessar, descomente o serviço e use um túnel SSH:
