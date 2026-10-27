@@ -56,6 +56,15 @@ Plano gratuito: 3 usuários / 100 dispositivos — suficiente para uso pessoal.
 4. No admin console (https://login.tailscale.com → **Machines**):
    - clique no nó Hetzner → **Edit route settings** → aprovar a rota de saída;
    - **⋯ → Disable key expiry** (nó fixo: evita bloqueio após 180 dias).
+5. **Aceite as rotas do lab** (senão o Hetzner não enxerga a sua LAN):
+
+   ```bash
+   sudo tailscale up --accept-routes --advertise-exit-node
+   ```
+
+   Sem `--accept-routes`, o health check avisa
+   `Some peers are advertising routes but --accept-routes is false` e a
+   rota `192.168.10.0/24` nunca entra na tabela do nó.
 5. Opcional: reforce o firewall local do SO (`ufw` no Ubuntu; `firewalld`
    já tratado acima no AlmaLinux) com 22 + 41641/udp apenas.
 
@@ -118,9 +127,9 @@ Plano gratuito: 3 usuários / 100 dispositivos — suficiente para uso pessoal.
 
 | Sintoma                         | Causa provável / correção                                   |
 | ------------------------------- | ----------------------------------------------------------- |
+| LAN do lab inacessível          | IP forwarding desligado, rota não aprovada no console **ou** `--accept-routes` faltando no nó cliente (`tailscale up --accept-routes`) |
+| `Some peers are advertising routes but --accept-routes is false` | Rode `sudo tailscale up --accept-routes` no nó que precisa enxergar a LAN |
 | Conexão lenta ou `relay`        | `tailscale status`; libere 41641/UDP no firewall do Hetzner |
-| MTU / sites que não abrem       | No Android: ajustar MTU para 1280                           |
-| LAN do lab inacessível          | IP forwarding desligado ou rota não aprovada no console     |
 | Nó sumiu da tailnet             | Key expirou → `sudo tailscale up` de novo (ou disable expiry) |
 | Resetar nó                      | `sudo tailscale down && sudo tailscale up --advertise-routes=...` |
 
