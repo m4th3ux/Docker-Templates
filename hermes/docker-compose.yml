@@ -1,0 +1,60 @@
+# ==========================================
+# HERMES AGENT (Nous Research) — Homelab
+# ==========================================
+# Agente de IA self-hosted com gateway de mensagens (Telegram + Discord).
+# Inferência 100% via APIs externas — NÃO usa GPU nem modelos locais.
+#
+# Uso:
+#   cp example.env .env          # preencha as chaves
+#   docker compose up -d
+#
+# Configuração inicial (uma única vez):
+#   docker exec -it hermes hermes model          # escolher provedor/modelo LLM
+#   docker exec -it hermes hermes gateway setup  # conectar Telegram/Discord
+#   docker compose restart
+#
+# Imagem oficial publicada no Docker Hub (sem build local):
+#   https://hub.docker.com/r/nousresearch/hermes-agent
+# Docs: https://hermes-agent.nousresearch.com/docs/
+
+services:
+  # ---- Gateway de mensagens (Telegram, Discord, cron, etc.) -----------------
+  gateway:
+    image: nousresearch/hermes-agent:stable
+    container_name: hermes
+    restart: unless-stopped
+    # Host network: o gateway pode abrir portas de webhook por plataforma
+    # (Slack, Teams, Telegram webhook etc.) sem conflito de mapeamento.
+    # Telegram (long polling) e Discord (websocket) funcionam sem porta aberta.
+    network_mode: host
+    env_file: .env
+    environment:
+      # UID/GID do host dono dos arquivos no volume (ver example.env)
+      - HERMES_UID=${HERMES_UID:-10000}
+      - HERMES_GID=${HERMES_GID:-10000}
+      - TZ=${TZ:-America/Sao_Paulo}
+    volumes:
+      # Estado, memória, skills, sessões e logs ficam em volume nomeado
+      - hermes_data:/opt/data
+    command: ["gateway", "run"]
+
+  # ---- Dashboard web (OPCIONAL — descomente para usar) ----------------------
+  # Armazena chaves de API: por padrão só escuta em 127.0.0.1.
+  # Acesse via túnel SSH (ssh -L 9119:localhost:9119 user@homelab).
+  # NÃO exponha na LAN/internet sem autenticação.
+  # dashboard:
+  #   image: nousresearch/hermes-agent:stable
+  #   container_name: hermes-dashboard
+  #   restart: unless-stopped
+  #   network_mode: host
+  #   depends_on:
+  #     - gateway
+  #   environment:
+  #     - HERMES_UID=${HERMES_UID:-10000}
+  #     - HERMES_GID=${HERMES_GID:-10000}
+  #   volumes:
+  #     - hermes_data:/opt/data
+  #   command: ["dashboard", "--host", "127.0.0.1", "--no-open"]
+
+volumes:
+  hermes_data:
